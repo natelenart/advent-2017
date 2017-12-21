@@ -2,7 +2,7 @@
 
 class Duet
 {
-    function __construct($id)
+    public function __construct($id)
     {
         $registers = range('a', 'z');
         $registers = array_flip($registers);
@@ -25,31 +25,31 @@ class Duet
         $this->receive = [];
     }
 
-    function set($x, $y)
+    private function set($x, $y)
     {
         $then = is_numeric($y) ? $y : $this->registers[$y];
         $this->registers[$x] = (int)($then);
     }
 
-    function add($x, $y)
+    private function add($x, $y)
     {
         $then = is_numeric($y) ? $y : $this->registers[$y];
         $this->registers[$x] += (int)($then);
     }
 
-    function mul($x, $y)
+    private function mul($x, $y)
     {
         $then = is_numeric($y) ? $y : $this->registers[$y];
         $this->registers[$x] *= (int)($then);
     }
 
-    function mod($x, $y)
+    private function mod($x, $y)
     {
         $then = is_numeric($y) ? $y : $this->registers[$y];
         $this->registers[$x] %= (int)($then);
     }
 
-    function process()
+    public function processPartA()
     {
         $i = 0;
         while ($i < count($this->inst)) {
@@ -66,9 +66,7 @@ class Duet
                 break;
             case 'rcv':
                 if ($this->registers[$parts[1]] != 0) {
-                    echo 'Input: ' . $input . PHP_EOL;
-                    echo 'Freq: ' . $this->freq[count($this->freq)-1] . PHP_EOL;
-                    echo PHP_EOL;
+                    echo 'Part A: ' . $this->freq[count($this->freq)-1] . PHP_EOL;
                     return;
                 }
                 break;
@@ -92,7 +90,7 @@ class Duet
         }
     }
 
-    function tick($i)
+    public function tickPartB($i)
     {
         if (! array_key_exists($i, $this->inst)) {
             return [ 'nop', 'null' ];
@@ -126,91 +124,51 @@ class Duet
         }
     }
 
-    function rec($val)
+    public function rec($val)
     {
         $this->receive[] = $val;
     }
 }
 
 $c = new Duet(-1);
-$c->process();
+$c->processPartA();
 
 $c0 = new Duet(0);
 $c1 = new Duet(1);
 
 $counter = 0;
-$tick0 = 0;
-$tick1 = 0;
-$stuck0 = false;
-$stuck1 = false;
-$done0 = false;
-$done1 = false;
+$ticks = [ 0, 0 ];
+$stuck = [ false, false ];
 while (true) {
-    $ret0 = $c0->tick($tick0);
-    $ret1 = $c1->tick($tick1);
+    $ret = [ $c0->tickPartB($ticks[0]) ];
+    $ret[1] = $c1->tickPartB($ticks[1]);
 
-    if ($ret1[0] == 'snd') {
+    if ($ret[1][0] == 'snd') {
         $counter++;
     }
 
-    if ($ret0[0] == 'nop') {
-        // no-op
-        $done0 = true;
-    } elseif ($ret0[0] == 'snd') {
-        $c1->rec($ret0[1]);
-        $tick0++;
-    } elseif ($ret0[0] == 'num') {
-        $tick0++;
-    } elseif ($ret0[0] == 'jgz') {
-        $tick0 += $ret0[1];
-    } elseif ($ret0[0] == 'rcv') {
-        if ($ret0[1] == 'free') {
-            $tick0++;
-            $stuck0 = false;
-        } elseif ($ret0[1] == 'blocked') {
-            // stall
-            $stuck0 = true;
-        } else {
-            var_dump('invalid rcv state 0'); die();
+    foreach ($ret as $idx => $resp) {
+        if ($resp[0] == 'snd') {
+            $c = ($idx == 0) ? $c1 : $c0;
+            $c->rec($resp[1]);
+            $ticks[$idx]++;
+        } elseif ($resp[0] == 'num') {
+            $ticks[$idx]++;
+        } elseif ($resp[0] == 'jgz') {
+            $ticks[$idx] += $resp[1];
+        } elseif ($resp[0] == 'rcv') {
+            if ($resp[1] == 'free') {
+                $ticks[$idx]++;
+                $stuck[$idx] = false;
+            } elseif ($resp[1] == 'blocked') {
+                $stuck[$idx] = true;
+            }
         }
-    } else {
-        var_dump('invalid inst state 0'); die();
     }
 
-    if ($ret1[0] == 'nop') {
-        // no-op
-        $done1 = true;
-    } elseif ($ret1[0] == 'snd') {
-        $c0->rec($ret1[1]);
-        $tick1++;
-    } elseif ($ret1[0] == 'num') {
-        $tick1++;
-    } elseif ($ret1[0] == 'jgz') {
-        $tick1 += $ret1[1];
-    } elseif ($ret1[0] == 'rcv') {
-        if ($ret1[1] == 'free') {
-            $tick1++;
-            $stuck1 = false;
-        } elseif ($ret1[1] == 'blocked') {
-            // stall
-            $stuck1 = true;
-        } else {
-            var_dump('invalid rcv state 0'); die();
-        }
-    } else {
-        var_dump('invalid inst state 0'); die();
-    }
-
-    if (
-        ($stuck0 && $stuck1)
-        || ($done0 && $done1)
-        || ($stuck0 && $done1)
-        || ($done0 && $stuck1)
-    ) {
+    if ($stuck[0] && $stuck[1]) {
         break;
     }
 }
 
-// 127 is too low
-echo $tick0 . ' :: ' . $tick1 . PHP_EOL;
 echo 'Part B: ' . $counter . PHP_EOL;
