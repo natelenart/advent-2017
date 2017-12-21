@@ -167,15 +167,13 @@ function combine($g)
 
 $grid = [
     [ '.', '#', '.' ],
-    [ '.', '.',  '#' ],
+    [ '.', '.', '#' ],
     [ '#', '#', '#' ],
 ];
-$iters = 1;
+$iters = 5;
 $part = 'A';
 
 LOOP:
-
-echo '# iterations: ' . $iters . PHP_EOL;
 
 for ($i = 0; $i < $iters; $i++) {
     $grid = spl($grid);
@@ -221,16 +219,16 @@ foreach ($grid as $y => $r) {
 echo 'Part ' . $part . ': ' . $counter . PHP_EOL;
 
 $loop = false;
-if ($iters < 18) {
+if ($part == 'A') {
     $loop = true;
-    $iters++;
 }
 
 $grid = [
     [ '.', '#', '.' ],
-    [ '.', '.',  '#' ],
+    [ '.', '.', '#' ],
     [ '#', '#', '#' ],
 ];
+$iters = 18;
 $part = 'B';
 
 if ($loop) {
